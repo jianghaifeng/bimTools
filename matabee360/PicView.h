@@ -51,8 +51,6 @@ public:
     vector<wstring> find_all_data();
     int remove_data(TCHAR* name, BOOL delfile);
 
-    int InitSock();
-    void ExitSock();
     int DelAllImage();
     int DelImage();
     BOOL TerminateThread();
@@ -63,13 +61,6 @@ public:
 
     TCHAR errstr[256];
     CProjectMgr m_projMgr;
-
-    //ne_session * m_pDav;
-    int Dav_init(char* scheme, char* url);
-    int Dav_mkcol(const char* p);
-    int Dav_put(const TCHAR* s, const char* d, int mode);
-    int CPicView::Dav_del(const char* d);
-    int Dav_close();
 
     static unsigned __stdcall	LoadThumbNail(LPVOID lpParam);
     static unsigned __stdcall   UploadImage(LPVOID lpParam);
@@ -84,8 +75,8 @@ public:
 #endif
 
 public:
-    virtual void OnDraw(CDC* pDC);      // ÖØÐ´ÒÔ»æÖÆ¸ÃÊÓÍ¼
-    virtual void OnInitialUpdate();     // ¹¹ÔìºóµÄµÚÒ»´Î
+    virtual void OnDraw(CDC* pDC);
+    virtual void OnInitialUpdate();
 
     DECLARE_MESSAGE_MAP()
     afx_msg void OnTimer(UINT_PTR nIDEvent);

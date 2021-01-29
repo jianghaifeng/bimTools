@@ -17,8 +17,6 @@
 #define ALWAYS_SORT_DATA    //default to enable
 //#define DEBUG_WITHOUT_DAV //default to disable
 
-
-
 // CPicView
 
 IMPLEMENT_DYNCREATE(CPicView, CScrollView)
@@ -31,13 +29,11 @@ CPicView::CPicView()
 	m_hThread = NULL;
 
 	m_issliced = false;
-	InitSock();
 }
 
 CPicView::~CPicView()
 {
 	release_data();
-	ExitSock();
 }
 
 int CPicView::init_data()
@@ -135,66 +131,6 @@ int CPicView::input_data(const TCHAR* name)
 		}
 	}
 	return i;
-}
-
-int CPicView::InitSock()
-{
-    WORD wVersionRequested;
-    WSADATA wsaData;
-    int err;
-
-    wVersionRequested = MAKEWORD(2, 2);
-    
-    err = WSAStartup(wVersionRequested, &wsaData);
-    if (err != 0) {
-		return -1;
-    }
-
-    return 0;
-}
-
-void CPicView::ExitSock()
-{
-	WSACleanup();
-}
-
-int CPicView::Dav_init(char* scheme, char* url)
-{
-	return 0;
-}
-
-int CPicView::Dav_mkcol(const char* p)
-{
-	
-	return 0;
-}
-
-int CPicView::Dav_del(const char* d)
-{
-	
-	return 0;
-}
-
-int CPicView::Dav_put(const TCHAR* s, const char* d, int mode)
-{
-	
-	return 0;
-}
-
-int CPicView::Dav_close()
-{
-	
-
-	return 0;
-}
-
-#define DAV_ERR_EXIT \
-{ \
-fputws(_T("ERR"), fp); \
-fclose(fp); \
-pView->m_repSig = 2; \
-_endthreadex( 0 ); \
-return 1; \
 }
 
 unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
@@ -386,46 +322,12 @@ unsigned __stdcall CPicView::UploadImage(LPVOID lpParam)
 
 		TCHAR sscheme[16], surl[64], dir[64];
 		parse_url(theApp.pCfg->m_url[i], sscheme, surl, dir);
-		pView->m_projMgr.set_remote_dir(W2A(dir));
-
-		pView->Dav_close();
-		pView->Dav_init(W2A(theApp.pCfg->m_scheme), W2A(surl));
 
 		for (int index=0; index < (pView->m_projMgr.upload_item_num()); index++)
 		{
 			theApp.pDlg->UpdateProgress(10+site_index*index*90/(site_num*(pView->m_projMgr.upload_item_num())));
 			CProjectMgr::upload_item ui = pView->m_projMgr.get_upload_item(index);
 			theApp.pDlg->PrintLog(A2W(pView->m_projMgr.get_upload_item_remotepath(ui).c_str()), NULL, 1);
-			if (ui.ut == CProjectMgr::e_upload_dir)
-			{
-				if ( pView->Dav_mkcol(pView->m_projMgr.get_upload_item_remotepath(ui).c_str()) < 0) {
-					//DAV_ERR_EXIT;
-				}
-			}
-			else if (ui.ut == CProjectMgr::e_upload_file)
-			{
-				if ( pView->Dav_put(pView->m_projMgr.get_upload_item_localpath(ui).c_str(), pView->m_projMgr.get_upload_item_remotepath(ui).c_str(), O_RDONLY | O_BINARY) < 0) {
-					int davPutResult = 0;
-					do{
-						//选择重传或取消
-						CPromptDlg dlg(theApp.pLang->m_rosetta[s_s_upload_fail], theApp.pLang->m_rosetta[s_prompt], pView, true);
-						INT_PTR modalResult = dlg.DoModal();
-
-						//取消
-						if(modalResult == IDOK) {
-							DAV_ERR_EXIT;
-						}
-
-						//重传
-						pView->Dav_close();
-						pView->Dav_init(W2A(theApp.pCfg->m_scheme), W2A(surl));
-						pView->Dav_del(pView->m_projMgr.get_upload_item_remotepath(ui).c_str());
-						davPutResult = pView->Dav_put(pView->m_projMgr.get_upload_item_localpath(ui).c_str(), pView->m_projMgr.get_upload_item_remotepath(ui).c_str(), O_RDONLY | O_BINARY);
-					} while(davPutResult < 0);
-
-					//DAV_ERR_EXIT;
-				}
-			}
 		}
 	}
 
@@ -433,7 +335,6 @@ unsigned __stdcall CPicView::UploadImage(LPVOID lpParam)
 	fclose(fp);
 	theApp.pDlg->UpdateProgressText(_T(""));
 	theApp.pDlg->UpdateProgress(100);
-	pView->Dav_close();
 	pView->KillTimer(TIMER_CHECK_ID);
 	theApp.pDlg->UnLockButtons();
 	theApp.pDlg->PrintLog(_T("Upload finished!!!"),_T("Upload finished, kill timer, unlockbuttons"));
@@ -443,227 +344,6 @@ unsigned __stdcall CPicView::UploadImage(LPVOID lpParam)
 	_endthreadex( 0 );
 	
 	return 0;
-
-#if 0
-	TCHAR dir[STR_LONG_LEN],
-		  subdir[STR_LONG_LEN],
-		  sname[STR_LONG_LEN],
-		  dname[STR_LONG_LEN],
-		  slicefolder[STR_LONG_LEN];
-	CString s,s1;
-	FILE *fp;
-
-	USES_CONVERSION;
-	s1.Format(_T("%s\\prj.log"), theApp.pDlg->m_sPrjWeb);
-	fp = _wfopen(theApp.pDlg->m_sPrjLog, _T("wt,ccs=UNICODE"));
-
-	if (fp == NULL) {
-		pView->m_repSig = 2;
-		_endthreadex( 0 );
-		return 1;
-	}
-
-	int total = 0, cur = 0;
-	if (theApp.pCfg->m_commit_img)
-		total += pView->num_data();
-	if (theApp.pCfg->m_commit_slice)
-		total += 9*pView->num_data();
-	
-	TCHAR web[5][STR_SHORT_LEN] = {_T("index.html"),_T("superscene.js"),_T("superscene.swf"),
-		_T("superscene.xml"),_T("superscene_editor.html")};
-	TCHAR skin[5][STR_SHORT_LEN] = {_T("logo.png"),_T("qtvr-cursors.png"),_T("superscene.png"),
-		_T("superscene_skin.xml"),_T("thumbborder.png")};
-	TCHAR plugins[6][STR_SHORT_LEN] = {_T("dblclick.swf"),_T("radar.swf"),_T("scrollarea.swf"),
-		_T("soundinterface.swf"),_T("textfield.swf"),_T("vtoureditor.swf")};
-	TCHAR slicename[8][STR_SHORT_LEN] = {_T("pano_f.jpg"),_T("pano_b.jpg"),_T("pano_d.jpg"),
-		_T("pano_u.jpg"),_T("pano_l.jpg"),_T("pano_r.jpg"),_T("preview.jpg"),_T("thumb.jpg")};
-
-	theApp.pDlg->PrintLog(_T("start upload..."));
-
-	int site_num = 0;
-	for (int i=0; i<3; i++)
-	{
-		if ( theApp.pCfg->m_urlIndex & (1 << i) )
-			site_num++;
-	}
-
-	total += 3;
-	total *= site_num;
-
-	//pView->Dav_init(W2A(theApp.pCfg->m_scheme), W2A(theApp.pCfg->m_site));
-
-	static int sliced = 0;
-
-	for (int i=0; i<3; i++)
-	{
-		if ( (theApp.pCfg->m_urlIndex & (1 << i))  == 0)
-			continue;
-
-		TCHAR sscheme[16], surl[64];
-		parse_url(theApp.pCfg->m_url[i], sscheme, surl, dir);
-		pView->Dav_close();
-		pView->Dav_init(W2A(theApp.pCfg->m_scheme), W2A(surl));
-
-		/*
-		if ( _tcsstr(theApp.pCfg->m_url[i], _T("buzzsaw.com")) )
-		{
-			
-		}
-		else
-		{
-			if (theApp.pCfg->m_url[i][0] != _T('/'))
-				_tcscpy(dir, _T("/"));
-			_tcscat(dir, theApp.pCfg->m_url[i]);
-		}
-		*/
-
-		theApp.pDlg->PrintLog(_T("creating dir..."));
-
-		_tcscat(dir, _T("/"));
-		_tcscat(dir, theApp.pCfg->m_rp_name);
-		theApp.pDlg->PrintLog(dir, NULL, 1);
-		if ( pView->Dav_mkcol(W2A(dir)) < 0) {
-			theApp.pDlg->PrintLog(_T("create failed? exist?"), NULL, 2);
-			//_endthreadex( 0 );
-			//return 1;
-		}
-		s1.Format(_T("URL[%d]\r\n"), theApp.pCfg->m_urlIndex);
-		fputws(s1, fp);
-		fputws(theApp.pCfg->m_rp_name, fp);
-		fputws(_T("\r\n"), fp);
-		fputws(theApp.pDlg->m_sPrjDt, fp);
-
-		_tcscat(dir, _T("/"));
-		_tcscat(dir, theApp.pCfg->m_rp_name);
-		_tcscat(dir, _T("_"));
-		_tcscat(dir, theApp.pDlg->m_sPrjDt);
-		if (_tcslen(theApp.pCfg->m_rp_shop) > 0)
-		{
-			_tcscat(dir, _T("_"));
-			_tcscat(dir, theApp.pCfg->m_rp_shop);
-
-			fputws(_T("\r\n"), fp);
-			fputws(theApp.pCfg->m_rp_shop, fp);
-			fputws(_T("\r\n"), fp);
-		}
-
-		theApp.pDlg->PrintLog(dir, NULL, 1);
-		if ( pView->Dav_mkcol(W2A(dir)) < 0) {
-			DAV_ERR_EXIT;
-		}
-
-		for (int k=0; k<5; k++) {
-			swprintf(sname, _T("%s\\%s"), theApp.pDlg->m_sPrjWeb, web[k]);
-			swprintf(dname, _T("%s/%s"), dir, web[k]);
-			theApp.pDlg->PrintLog(web[k], NULL, 1);
-			if ( pView->Dav_put(sname, W2A(dname), O_RDONLY | O_BINARY) < 0) {
-				DAV_ERR_EXIT;
-			}
-		}
-		cur++;
-		theApp.pDlg->UpdateProgress(cur*100/total);
-
-		swprintf(subdir, _T("%s/panos"), dir);
-		theApp.pDlg->PrintLog(_T("/panos"), NULL, 1);
-		if ( pView->Dav_mkcol(W2A(subdir)) < 0) {
-			DAV_ERR_EXIT;
-		}
-
-		swprintf(subdir, _T("%s/skin"), dir);
-		theApp.pDlg->PrintLog(_T("/skin"), NULL, 1);
-		if ( pView->Dav_mkcol(W2A(subdir)) < 0) {
-			DAV_ERR_EXIT;
-		}
-		for (int k=0; k<5; k++) {
-			swprintf(sname, _T("%s\\skin\\%s"), theApp.pDlg->m_sPrjWeb, skin[k]);
-			swprintf(dname, _T("%s/%s"), subdir, skin[k]);
-			theApp.pDlg->PrintLog(skin[k], NULL, 1);
-			if ( pView->Dav_put(sname, W2A(dname), O_RDONLY | O_BINARY) < 0) {
-				DAV_ERR_EXIT;
-			}
-		}
-		cur++;
-		theApp.pDlg->UpdateProgress(cur*100/total);
-
-		swprintf(subdir, _T("%s/plugins"), dir);
-		theApp.pDlg->PrintLog(_T("/plugins"), NULL, 1);
-		if ( pView->Dav_mkcol(W2A(subdir)) < 0) {
-			DAV_ERR_EXIT;
-		}
-		for (int k=0; k<6; k++) {
-			swprintf(sname, _T("%s\\plugins\\%s"), theApp.pDlg->m_sPrjWeb, plugins[k]);
-			swprintf(dname, _T("%s/%s"), subdir, plugins[k]);
-			theApp.pDlg->PrintLog(plugins[k], NULL, 1);
-			if ( pView->Dav_put(sname, W2A(dname), O_RDONLY | O_BINARY) < 0) {
-				DAV_ERR_EXIT;
-			}
-		}
-		cur++;
-		theApp.pDlg->UpdateProgress(cur*100/total);
-
-		theApp.pDlg->PrintLog(_T("uploading image & webfiles"));
-
-		int ItemCount = pView->num_data();
-		int sliceIndex = 0;
-		for (int i_of_data=0; i_of_data<ItemCount; i_of_data++) {
-			int i = pView->m_SortedData[i_of_data].index;
-			
-			if (i >= 0 && i < MAX_IMG_CNT && pView->m_data[i].flag == 1) {
-				if (theApp.pCfg->m_commit_img) {
-					get_full_name(pView->m_data[i].name, s);
-					swprintf(dname, _T("%s/%s"), dir, s);
-					theApp.pDlg->PrintLog(s, NULL, 1);
-					if ( pView->Dav_put(pView->m_data[i].name, W2A(dname), O_RDONLY | O_BINARY) < 0) {
-						DAV_ERR_EXIT;
-					}
-					cur++;
-					theApp.pDlg->UpdateProgress(100*cur/total);
-				}
-
-				if (theApp.pCfg->m_commit_slice) {
-					sliceIndex++;
-					swprintf(slicefolder, _T("%s\\panos\\%02d"), theApp.pDlg->m_sPrjWeb, sliceIndex);
-					CreateDirectory(slicefolder, NULL);
-					if (sliced == 0)
-					{
-						slice_routine(1024, 160, 256, pView->m_data[i].name, slicefolder, 85);
-					}
-					swprintf(subdir, _T("%s/panos/%02d"), dir, sliceIndex);
-					if ( pView->Dav_mkcol(W2A(subdir)) < 0) {
-						DAV_ERR_EXIT;
-					}
-					cur++;
-					theApp.pDlg->UpdateProgress(100*cur/total);
-
-					for (int j=0; j<8; j++) {
-						swprintf(sname, _T("%s\\%s"), slicefolder, slicename[j]);
-						swprintf(dname, _T("%s/%s"), subdir, slicename[j]);
-						theApp.pDlg->PrintLog(slicename[j], NULL, 1);
-						if ( pView->Dav_put(sname, W2A(dname), O_RDONLY | O_BINARY) < 0) {
-							DAV_ERR_EXIT;
-						}
-						cur++;
-						theApp.pDlg->UpdateProgress(100*cur/total);
-					}
-				}
-			}
-		}
-		sliced = 1;
-	}
-	theApp.pDlg->UpdateProgress(100);
-	fputws(_T("\r\nOK"), fp);
-	fclose(fp);
-
-	pView->Dav_close();
-	pView->KillTimer(TIMER_CHECK_ID);
-	theApp.pDlg->UnLockButtons();
-	theApp.pDlg->PrintLog(_T("Upload finished!!!"),_T("Upload finished, kill timer, unlockbuttons"));
-	CPromptDlg dlg(theApp.pLang->m_rosetta[s_s_upload_ok], theApp.pLang->m_rosetta[s_prompt],theApp.pDlg);
-	dlg.DoModal();
-	theApp.pDlg->UpdateProgress(0);
-	_endthreadex( 0 );
-	return 0;
-#endif
 }
 
 int CPicView::Slice()
@@ -729,9 +409,6 @@ BEGIN_MESSAGE_MAP(CPicView, CScrollView)
 	ON_WM_TIMER()
 END_MESSAGE_MAP()
 
-
-// CPicView 绘图
-
 void CPicView::OnInitialUpdate()
 {
 	CScrollView::OnInitialUpdate();
@@ -772,9 +449,6 @@ void CPicView::OnDraw(CDC* pDC)
 	rect.top += (rect.Height() - height)/2 - 10;
 	pDC->DrawText( str, &rect, DT_CENTER|DT_EDITCONTROL|DT_WORDBREAK );
 }
-
-
-// CPicView 诊断
 
 #ifdef _DEBUG
 void CPicView::AssertValid() const

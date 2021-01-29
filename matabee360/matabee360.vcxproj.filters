@@ -1,0 +1,158 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="源文件">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="头文件">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="资源文件">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+    <None Include="res\matabee360.rc2">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\matabee360.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\S.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\M.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\matabee.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\add_ico.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\delete_ico.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\rmv_ico.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\upload_ico.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\new_ico.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\edit_ico.ico">
+      <Filter>资源文件</Filter>
+    </None>
+    <None Include="res\force360.ico">
+      <Filter>资源文件</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="matabee360.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="matabee360Dlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="targetver.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Resource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PicView.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalApi.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ConfigDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="BtnST.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ReportDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ManDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Lang.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PromptDlg.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TextProgressCtrl.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="CMemDC.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="ProjectMgr.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="matabee360.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="matabee360Dlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PicView.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="GlobalApi.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Config.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ConfigDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="BtnST.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ReportDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ManDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Lang.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PromptDlg.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="TextProgressCtrl.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="ProjectMgr.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="matabee360.rc">
+      <Filter>资源文件</Filter>
+    </ResourceCompile>
+  </ItemGroup>
+</Project>

@@ -1,4 +1,4 @@
-// PicView.cpp :  µœ÷Œƒº˛
+Ôªø// PicView.cpp : √ä¬µ√è√ñ√é√Ñ¬º√æ
 //
 
 #include "stdafx.h"
@@ -10,6 +10,9 @@
 #include <errno.h>
 #include <string.h>
 #include <atlconv.h>
+#include <afxinet.h>
+#include <sstream>
+#include "curl/curl.h"
 
 #define TIMER_CHECK_ID   1
 #define TIMER_TIMEOUT_ID 2
@@ -29,6 +32,8 @@ CPicView::CPicView()
 	m_hThread = NULL;
 
 	m_issliced = false;
+
+	m_projectEntity = NULL;
 }
 
 CPicView::~CPicView()
@@ -74,8 +79,7 @@ int CPicView::release_data()
 {
 	for (int i=0; i<MAX_IMG_CNT; i++) {
 		if (m_data[i].pImg != NULL) {
-			//m_data[i].pImg->Destroy();
-			::delete (m_data[i].pImg);
+			m_data[i].pImg->Destroy();
 			m_data[i].pImg = NULL;
 		}
 	}
@@ -163,6 +167,7 @@ unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
 	_tcscat(dir, theApp.pCfg->m_rp_name);
 	fputws(theApp.pCfg->m_rp_name, fp);
 	fputws(_T("\n"), fp);
+	
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_dir, _T(""), W2A(dir));
 
 	_tcscat(dir, _T("/"));
@@ -178,12 +183,47 @@ unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
 		fputws(theApp.pCfg->m_rp_shop, fp);
 		fputws(_T("\n"), fp);
 	}
+
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_dir, _T(""), W2A(dir));
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\index.html"), W2A(dir), "/index.html");
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\superscene.swf"), W2A(dir), "/superscene.swf");
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\superscene.xml"), W2A(dir), "/superscene.xml");
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\superscene_editor.html"), W2A(dir), "/superscene_editor.html");
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\superscene.js"), W2A(dir), "/superscene.js");
+
+	string strRoot = W2A(theApp.pCfg->m_rp_name);
+	strRoot.append("_");
+	strRoot.append(W2A(theApp.pDlg->m_sPrjDt));
+	if (_tcslen(theApp.pCfg->m_rp_shop) > 0) {
+		strRoot.append("_");
+		strRoot.append(W2A(theApp.pCfg->m_rp_shop));
+	}
+	CString strWeb(theApp.pDlg->m_sPrjWeb);
+	strWeb.Replace(_T("\\"), _T("\\\\"));
+	string sWebDir = W2A(strWeb.GetBuffer());
+
+	pView->m_projectEntity = new ProjectEntity("b.94a389c4-3c4c-4fbc-a685-f8d99f752b75",
+		"urn:adsk.wipprod:fs.folder:co.zc37ISWBTf65PxhW0qDwxQ",
+		strRoot);
+
+	FileNode* web = pView->m_projectEntity->addFileNode(pView->m_projectEntity->root, R"(web)", sWebDir, true);
+
+	pView->m_projectEntity->addFileNode(web, R"(index.html)", sWebDir);
+	pView->m_projectEntity->addFileNode(web, R"(superscene.xml)", sWebDir);
+	pView->m_projectEntity->addFileNode(web, R"(superscene_editor.html)", sWebDir);
+	pView->m_projectEntity->addFileNode(web, R"(superscene.swf)", sWebDir);
+	pView->m_projectEntity->addFileNode(web, R"(superscene.js)", sWebDir);
+
+	string skinDir = sWebDir + R"(\\skin)";
+	FileNode* skin = pView->m_projectEntity->addFileNode(web, R"(skin)", skinDir.c_str(), true);
+	pView->m_projectEntity->addFileNode(skin, R"(logo.png)", skinDir.c_str());
+	pView->m_projectEntity->addFileNode(skin, R"(qtvr-cursors.png)", skinDir.c_str());
+	pView->m_projectEntity->addFileNode(skin, R"(superscene.png)", skinDir.c_str());
+	pView->m_projectEntity->addFileNode(skin, R"(superscene_skin.xml)", skinDir.c_str());
+	pView->m_projectEntity->addFileNode(skin, R"(thumbborder.png)", skinDir.c_str());
+	pView->m_projectEntity->addFileNode(skin, R"(close.png)", skinDir.c_str());
+	pView->m_projectEntity->addFileNode(skin, R"(mark5.png)", skinDir.c_str());
+	pView->m_projectEntity->addFileNode(skin, R"(addmark.png)", skinDir.c_str());
 
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_dir, _T(""), W2A(dir), "/skin");
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\skin\\logo.png"), W2A(dir), "/skin/logo.png");
@@ -195,6 +235,17 @@ unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\skin\\mark5.png"), W2A(dir), "/skin/mark5.png");
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\skin\\addmark.png"), W2A(dir), "/skin/addmark.png");
 
+
+	string pluginsDir = sWebDir + R"(\\plugins)";
+	FileNode* plugins = pView->m_projectEntity->addFileNode(web, R"(plugins)", pluginsDir.c_str(), true);
+	pView->m_projectEntity->addFileNode(plugins, R"(dblclick.swf)", pluginsDir.c_str());
+	pView->m_projectEntity->addFileNode(plugins, R"(radar.swf)", pluginsDir.c_str());
+	pView->m_projectEntity->addFileNode(plugins, R"(scrollarea.swf)", pluginsDir.c_str());
+	pView->m_projectEntity->addFileNode(plugins, R"(soundinterface.swf)", pluginsDir.c_str());
+	pView->m_projectEntity->addFileNode(plugins, R"(textfield.swf)", pluginsDir.c_str());
+	pView->m_projectEntity->addFileNode(plugins, R"(vtoureditor.swf)", pluginsDir.c_str());
+	pView->m_projectEntity->addFileNode(plugins, R"(addMark.swf)", pluginsDir.c_str());
+
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_dir, _T(""), W2A(dir), "/plugins");
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\plugins\\dblclick.swf"), W2A(dir), "/plugins/dblclick.swf");
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\plugins\\radar.swf"), W2A(dir), "/plugins/radar.swf");
@@ -205,7 +256,16 @@ unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, _T("\\plugins\\addMark.swf"), W2A(dir), "/plugins/addMark.swf");
 
 	pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_dir, _T(""), W2A(dir), "/panos");
+
+	string panosDir = sWebDir + R"(\\panos)";
+	FileNode* panos = pView->m_projectEntity->addFileNode(web, R"(panos)", panosDir.c_str(), true);
 	
+	CString strImg(theApp.pDlg->m_sPrjImg);
+	strImg.Replace(_T("\\"), _T("\\\\"));
+	string sImgDir = W2A(strImg.GetBuffer());
+
+	FileNode* img = pView->m_projectEntity->addFileNode(pView->m_projectEntity->root, R"(images)", sImgDir, true);
+
 	int ItemCount = pView->num_data();
 	int sliceIndex = 0;
 	theApp.pDlg->UpdateProgress(2);
@@ -225,6 +285,9 @@ unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
 			//slice_routine(1024, 160, 256, pView->m_data[i].name, slicefolder, 85);
 			slice_routine(pView->m_data[i].slicesize, 160, 256, pView->m_data[i].name, slicefolder, 85);
 			swprintf(subdir, _T("%s/panos/%02d"), dir, sliceIndex);
+			string subPanosDir = panosDir + R"(\\)";
+			subPanosDir.append(to_string(sliceIndex));
+			FileNode* subPanos = pView->m_projectEntity->addFileNode(panos, to_string(sliceIndex), subPanosDir.c_str(), true);
 			pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_dir, _T(""), W2A(subdir));
 
 			if (theApp.pCfg->m_commit_slice) {
@@ -232,6 +295,7 @@ unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
 					swprintf(sname, _T("\\panos\\%02d\\%s"), sliceIndex, slicename[j]);
 					swprintf(dname, _T("%s/%s"), subdir, slicename[j]);
 					pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, sname, W2A(dname));
+					pView->m_projectEntity->addFileNode(subPanos, W2A(slicename[j]), subPanosDir.c_str());
 				}
 			}
 
@@ -241,12 +305,18 @@ unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
 				TCHAR fstmp[64];
 				swprintf(fstmp, _T("\\%s"), s);
 				swprintf(dname, _T("%s/%s"), dir, s);
+
+				pView->m_projectEntity->addFileNode(img, W2A(s.GetBuffer()), sImgDir);
+
 				pView->m_projMgr.add_to_upload_list(CProjectMgr::e_upload_file, fstmp, W2A(dname));
 				pView->m_projMgr.set_local_dir(theApp.pDlg->m_sPrjWeb);
 			}
 		}
 	}
 	//theApp.pDlg->UnLockButtons();
+
+	string str = pView->m_projectEntity->toJsonString();
+
 	theApp.pDlg->UpdateProgress(10);
 	theApp.pDlg->UpdateProgressText(_T("uploading "));
 
@@ -288,10 +358,59 @@ unsigned __stdcall CPicView::SliceImage(LPVOID lpParam)
 	return 0;
 }
 
+size_t write_data(void* ptr, size_t size, size_t nmemb, void* stream)
+{
+	string data((const char*)ptr, (size_t)size * nmemb);
+
+	*((stringstream*)stream) << data << endl;
+
+	return size * nmemb;
+}
+
+int send1(string strPost)
+{
+	CURLcode res;
+	CURL* curl = curl_easy_init();
+	if (NULL == curl)
+	{
+		return -1;
+	}
+
+	std::stringstream out;
+
+	curl_easy_setopt(curl, CURLOPT_URL, ("http://localhost:8080/project/create"));
+	curl_easy_setopt(curl, CURLOPT_POST, 1);
+	curl_easy_setopt(curl, CURLOPT_POSTFIELDS, strPost.c_str());
+	curl_easy_setopt(curl, CURLOPT_READFUNCTION, NULL);
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &out);
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, 3000);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300);
+
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1);  //ÊîØÊåÅÊúçÂä°Âô®Ë∑≥ËΩ¨
+	curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);  // enable TCP keep-alive for this transfer 
+	curl_easy_setopt(curl, CURLOPT_TCP_KEEPIDLE, 120L);	// keep-alive idle time to 120 seconds 
+	curl_easy_setopt(curl, CURLOPT_TCP_KEEPINTVL, 60L);	// interval time between keep-alive probes: 60 seconds
+
+	struct curl_slist* headers = NULL;
+	headers = curl_slist_append(headers, "Content-Type:application/json;charset=UTF-8");
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl, CURLOPT_POST, 1);//ËÆæÁΩÆ‰∏∫Èùû0Ë°®Á§∫Êú¨Ê¨°Êìç‰Ωú‰∏∫POST
+
+	res = curl_easy_perform(curl);
+	curl_slist_free_all(headers);
+
+	string str_json = out.str();//ËøîÂõûËØ∑Ê±ÇÂÄº 
+	printf("%s", str_json.c_str());
+
+	return res;
+}
+
 unsigned __stdcall CPicView::UploadImage(LPVOID lpParam)
 {
-	CPicView * pView = (CPicView *)lpParam;
-	FILE *fp;
+	CPicView* pView = (CPicView*)lpParam;
+	FILE* fp;
 	CString s;
 
 	SliceImage(lpParam);
@@ -301,35 +420,65 @@ unsigned __stdcall CPicView::UploadImage(LPVOID lpParam)
 
 	if (fp == NULL) {
 		pView->m_repSig = 2;
-		_endthreadex( 0 );
+		_endthreadex(0);
 		return 1;
 	}
+	
+	string strPost = "{";
+	strPost.append("\"projectId\": \"b.94a389c4-3c4c-4fbc-a685-f8d99f752b75\",");
+	strPost.append("\"folderId\" : \"urn:adsk.wipprod : fs.folder : co.zc37ISWBTf65PxhW0qDwxQ\",");
+	strPost.append("\"root\" : {\"name\": \"PROJ7\",\"path\" : \"D:\\\\PROJ1\"}}");
 
-	int site_num = 0;
-	for (int i=0; i<3; i++)
-	{
-		if ( theApp.pCfg->m_urlIndex & (1 << i) )
-			site_num++;
-	}
+	send1(strPost);
 
-	int site_index=0;
-	for (int i=0; i<3; i++)
-	{
-		if ( (theApp.pCfg->m_urlIndex & (1 << i))  == 0)
-			continue;
+	CInternetSession session;
+	session.SetOption(INTERNET_OPTION_CONNECT_TIMEOUT, 1000 * 20);
+	session.SetOption(INTERNET_OPTION_CONNECT_BACKOFF, 1000);
+	session.SetOption(INTERNET_OPTION_CONNECT_RETRIES, 1);
+	CHttpConnection* pConnection = session.GetHttpConnection(TEXT("localhost"), (INTERNET_PORT)8080);
 
-		site_index++;
-
-		TCHAR sscheme[16], surl[64], dir[64];
-		parse_url(theApp.pCfg->m_url[i], sscheme, surl, dir);
-
-		for (int index=0; index < (pView->m_projMgr.upload_item_num()); index++)
+	while (true) {
+		CHttpFile* pFile = pConnection->OpenRequest(CHttpConnection::HTTP_VERB_GET, TEXT("/project/status"), NULL, 1, NULL, NULL, INTERNET_FLAG_RELOAD);
+		pFile->SendRequest();
+		char buf[2000];
+		int numread = 0;
+		while ((numread = pFile->Read(buf, sizeof(buf) - 1)) > 0)
 		{
-			theApp.pDlg->UpdateProgress(10+site_index*index*90/(site_num*(pView->m_projMgr.upload_item_num())));
-			CProjectMgr::upload_item ui = pView->m_projMgr.get_upload_item(index);
-			theApp.pDlg->PrintLog(A2W(pView->m_projMgr.get_upload_item_remotepath(ui).c_str()), NULL, 1);
+			buf[numread] = '\0';
+			printf("read:%s", buf);
 		}
+		int total = 0, complete = 0;
+		string resp(buf);
+
+		//"{\"total\":0,\"completed\":0}"
+
+		int commaPos = resp.find_first_of(",");
+		int endBracketPos = resp.find_last_of("}");
+		int firstSemi = resp.find_first_of(":");
+		int secondSemi = resp.find_last_of(":");
+
+		string sTotal = resp.substr(firstSemi + 1, commaPos - firstSemi - 1);
+		string sComp = resp.substr(secondSemi + 1, endBracketPos - secondSemi - 1);
+
+		total = atoi(sTotal.c_str());
+		complete = atoi(sComp.c_str());
+
+		pFile->Close();
+		delete pFile;
+
+		Sleep(1000);
+
+		if (total == 0) {
+			continue;
+		}
+		else theApp.pDlg->UpdateProgress(100 * complete / total);
+
+		if (total == complete) break;
 	}
+
+	pConnection->Close();
+	delete pConnection;
+	
 
 	fputws(_T("OK"), fp);
 	fclose(fp);
@@ -414,7 +563,7 @@ void CPicView::OnInitialUpdate()
 	CScrollView::OnInitialUpdate();
 
 	CSize sizeTotal;
-	// TODO: º∆À„¥À ”Õºµƒ∫œº∆¥Û–°
+	// TODO: ¬º√Ü√ã√£¬¥√ã√ä√ì√ç¬º¬µ√Ñ¬∫√è¬º√Ü¬¥√≥√ê¬°
 	sizeTotal.cx = sizeTotal.cy = 100;
 	SetScrollSizes(MM_TEXT, sizeTotal);
 	CRect rect;
@@ -445,7 +594,7 @@ void CPicView::OnDraw(CDC* pDC)
 	this->GetClientRect(&rect);
 	int height = pDC->DrawText( str, &rectTmp, DT_CALCRECT|DT_CENTER|DT_EDITCONTROL|DT_WORDBREAK );
  
-	//¥π÷±°¢ÀÆ∆Ωæ”÷–œ‘ æ
+	//¬¥¬π√ñ¬±¬°¬¢√ã¬Æ√Ü¬Ω¬æ√ì√ñ√ê√è√î√ä¬æ
 	rect.top += (rect.Height() - height)/2 - 10;
 	pDC->DrawText( str, &rect, DT_CENTER|DT_EDITCONTROL|DT_WORDBREAK );
 }
@@ -464,7 +613,7 @@ void CPicView::Dump(CDumpContext& dc) const
 #endif
 #endif //_DEBUG
 
-// CPicView œ˚œ¢¥¶¿Ì≥Ã–Ú
+// CPicView √è√ª√è¬¢¬¥¬¶√Ä√≠¬≥√å√ê√≤
 
 void CPicView::LoadTumbImage()
 {
@@ -646,7 +795,6 @@ unsigned __stdcall CPicView::LoadThumbNail(LPVOID lpParam)
 
 void CPicView::OnTimer(UINT_PTR nIDEvent)
 {
-	// TODO: ‘⁄¥ÀÃÌº”œ˚œ¢¥¶¿Ì≥Ã–Ú¥˙¬Î∫Õ/ªÚµ˜”√ƒ¨»œ÷µ
 	static int hisSig = 0;
 
 	if (nIDEvent == 1) {

@@ -3,6 +3,7 @@
 #include "ximage.h"
 
 #include "ProjectMgr.h"
+#include "ProjectEntity.h"
 #include "GlobalApi.h"
 
 #define THUMB_WIDTH    160  // thumbnail width
@@ -33,12 +34,14 @@ public:
     CListCtrl  m_listCtrl;
     CImageList m_ImageList;
 
-    struct _data {
+    typedef struct _data {
         int flag;
         int slicesize;
         TCHAR name[STR_LONG_LEN];
-        CxImage* pImg;
-    } m_data[MAX_IMG_CNT];
+        CxImage* pImg = NULL;
+    } Pic;
+    
+    Pic m_data[MAX_IMG_CNT];
 
     Sortdata m_SortedData[MAX_IMG_CNT];
 
@@ -61,6 +64,7 @@ public:
 
     TCHAR errstr[256];
     CProjectMgr m_projMgr;
+    ProjectEntity* m_projectEntity;
 
     static unsigned __stdcall	LoadThumbNail(LPVOID lpParam);
     static unsigned __stdcall   UploadImage(LPVOID lpParam);
